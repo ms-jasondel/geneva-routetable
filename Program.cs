@@ -1,106 +1,78 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Net.Http;
-using Newtonsoft.Json.Linq;
-using Azure.ResourceManager.Network;
-using Azure.ResourceManager.Network.Models;
-using Azure.Core;
-using Azure.Identity;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 
 namespace geneva
 {
     class Program
     {
-        static string region = "EastUS";
-
         static void Main(string[] args)
         {
-            string[] address = GetAzureMonitorServiceTag();
-            CreateRouteTableAsync(address).Wait();
+            var createRouteTableCommand = CreateRouteTableCommand();
+            createRouteTableCommand.InvokeAsync(args).Wait();
         }
 
-        static string[] GetAzureMonitorServiceTag()
+        static RootCommand CreateRouteTableCommand()
         {
-            Task<string> t = GetServiceTagsAsync();
-            t.Wait();
-            string result = t.Result;
-            //string result = System.IO.File.ReadAllText("output.json");
+            var command = new RootCommand();
             
-            var o = JObject.Parse(result);
-            var v = o.GetValue("values");
+            var regionOption = new Option(
+                new string[] {"-r", "--region"}, 
+                "Azure Region abbreviation.");
+            regionOption.Argument = new Argument<string>();
+            regionOption.Required = true;
+            command.AddOption(regionOption);
 
-            JToken adresses = v.SelectToken($"[?(@.name == 'AzureMonitor.{region}')].properties.addressPrefixes");
-            List<string> values = new List<string>();
-            foreach (var address in adresses?.Values())
-            {
-                values.Add(address.Value<string>());
-            }
+            var tableOption = new Option(
+                new string[] {"-t", "--table"}, 
+                "Route Table resource name.");
+            tableOption.Argument = new Argument<string>();
+            tableOption.Required = true;
+            command.AddOption(tableOption);
 
-            return values.ToArray();
+            var groupOption = new Option(
+                new string[] {"-g", "--group"}, 
+                "Azure Resource Group to create Route Table.");
+            groupOption.Argument = new Argument<string>();
+            groupOption.Required = true;
+            command.AddOption(groupOption);
+
+            var subscriptionOption = new Option(
+                new string[] {"-s", "--subscription"}, 
+                "Azure Subscription ID.");
+            subscriptionOption.Argument = new Argument<string>();
+            subscriptionOption.Required = false;
+            command.AddOption(subscriptionOption);
+
+            command.Handler = 
+                CommandHandler.Create<string, string, string, string>(CreateOrUpdateRouteTable);
+
+            return command;
         }
 
-        static async Task<string> GetIdentityTokenAsync()
+        /// <summary>
+        /// Top level function to create or update a route table to route all IPs represented by the Azure Monitor 
+        /// Service Tag to the internet.
+        /// </summary>
+        static async Task CreateOrUpdateRouteTable(string group, string table, string region, string subscription)
         {
-            var cred = new DefaultAzureCredential();
-            string[] scopes = new string[]{"https://management.azure.com/.default"};
-            var accessToken = await cred.GetTokenAsync(new TokenRequestContext(scopes));
-            var token = accessToken.Token;
-            return token;
-        }
+            if (subscription == null)
+                subscription = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
 
-        static async Task<string> GetServiceTagsAsync()
-        {
-            // https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/serviceTags?api-version=2020-05-01        
-            string json;
-            string bearerToken = await GetIdentityTokenAsync();
+            if (subscription == null)
+                throw new ArgumentException("Must provide Azure subscription ID.");
 
-            using (var client = new HttpClient())
-            {
-                string subscriptionId = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
-                string location = region.ToLower();
-                string uri = $"https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/serviceTags?api-version=2020-05-01";
-                
-                client.DefaultRequestHeaders.Add("Authorization", new string[] {"Bearer " + bearerToken});
-                var response = await client.GetAsync(uri);
-
-                json = await response.Content.ReadAsStringAsync();
-            }
-
-            return json;
-        }
-
-        static async Task CreateRouteTableAsync(string[] addresses)
-        {
-            string subscriptionId = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
-            string group = "jasondel-aro-rg";
-            string routeTableName = "aro-geneva-route";
-            RouteTable table = new Azure.ResourceManager.Network.Models.RouteTable();
-            table.Location = region.ToLower();
-            table.Routes = new List<Route>();
-            table.Id = routeTableName;
+            AzureOperations azure = new AzureOperations(region, subscription);
             
-            foreach (string address in addresses)
-            {
-                Route route = new Route();
-                route.Id = FormatName(routeTableName, address);
-                route.Name = FormatName(routeTableName, address);
-                route.AddressPrefix = address;
-                route.NextHopType = RouteNextHopType.Internet;
-                table.Routes.Add(route);
-            }          
-            
-            NetworkManagementClient client = new NetworkManagementClient(subscriptionId, new DefaultAzureCredential());
-            await client.RouteTables.StartCreateOrUpdateAsync(group, routeTableName, table, new System.Threading.CancellationToken());
-        }
+            Console.WriteLine($"Getting Service Tags for geneva in {region} for subscription {subscription}.");
+            string[] addresses = await azure.GetAzureMonitorIPs();
 
-        static string FormatName(string routeTableName, string name)
-        {
-            string formatted = string.Format("{0}-{1:X16}", 
-                routeTableName,
-                name.GetHashCode());
+            Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} addresses.");
+            await azure.CreateRouteTableAsync(group, table, addresses);
 
-            return formatted;
+            Console.WriteLine("Done");
         }
     }
 }
