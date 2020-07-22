@@ -9,7 +9,7 @@ using Azure.ResourceManager.Network.Models;
 using Azure.Core;
 using Azure.Identity;
 
-namespace geneva
+namespace GenevaServiceTag
 {
     public class AzureOperations
     {

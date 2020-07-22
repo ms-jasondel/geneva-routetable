@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 
-namespace geneva
+namespace GenevaServiceTag
 {
     class Program
     {
@@ -14,6 +14,32 @@ namespace geneva
             createRouteTableCommand.InvokeAsync(args).Wait();
         }
 
+        /// <summary>
+        /// Creates or update a route table to route all IPs represented by the Azure Monitor 
+        /// Service Tag to the internet.
+        /// </summary>
+        static async Task CreateOrUpdateRouteTableAsync(string group, string table, string region, string subscription)
+        {
+            if (subscription == null)
+                subscription = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
+
+            if (subscription == null)
+                throw new ArgumentException("Must provide Azure subscription ID.");
+
+            AzureOperations azure = new AzureOperations(region, subscription);
+            
+            Console.WriteLine($"Getting Service Tags for geneva in {region} for subscription {subscription}.");
+            string[] addresses = await azure.GetAzureMonitorIPs();
+
+            Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} addresses.");
+            await azure.CreateRouteTableAsync(group, table, addresses);
+
+            Console.WriteLine("Done");
+        }
+
+        /// <summary>
+        /// Leverages the System.CommandLine package to parse and validate arguments and build a command.
+        /// </summary>
         static RootCommand CreateRouteTableCommand()
         {
             var command = new RootCommand();
@@ -47,32 +73,9 @@ namespace geneva
             command.AddOption(subscriptionOption);
 
             command.Handler = 
-                CommandHandler.Create<string, string, string, string>(CreateOrUpdateRouteTable);
+                CommandHandler.Create<string, string, string, string>(CreateOrUpdateRouteTableAsync);
 
             return command;
-        }
-
-        /// <summary>
-        /// Top level function to create or update a route table to route all IPs represented by the Azure Monitor 
-        /// Service Tag to the internet.
-        /// </summary>
-        static async Task CreateOrUpdateRouteTable(string group, string table, string region, string subscription)
-        {
-            if (subscription == null)
-                subscription = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
-
-            if (subscription == null)
-                throw new ArgumentException("Must provide Azure subscription ID.");
-
-            AzureOperations azure = new AzureOperations(region, subscription);
-            
-            Console.WriteLine($"Getting Service Tags for geneva in {region} for subscription {subscription}.");
-            string[] addresses = await azure.GetAzureMonitorIPs();
-
-            Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} addresses.");
-            await azure.CreateRouteTableAsync(group, table, addresses);
-
-            Console.WriteLine("Done");
         }
     }
 }
