@@ -1,0 +1,4 @@
+bin/**
+obj/**
+dot.env
+.vscode/**
