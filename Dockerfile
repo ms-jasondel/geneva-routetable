@@ -5,8 +5,7 @@ ARG VERSION
 COPY . /geneva
 WORKDIR /geneva
 
-RUN dotnet clean && \
-    dotnet restore && \
+RUN dotnet restore && \
     dotnet publish \
         -p:Version=$VERSION -c Release --self-contained true \
         -r linux-x64 -o ./bin

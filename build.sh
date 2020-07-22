@@ -11,5 +11,4 @@ echo "Building container."
 docker build -t $container \
     --build-arg VERSION=$VERSION \
     --force-rm \
-    --target build \
     -f ./Dockerfile .
