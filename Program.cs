@@ -8,6 +8,8 @@ namespace GenevaServiceTag
 {
     class Program
     {
+        const string DefaultRouteTableName = "Firewall-route";
+        
         static void Main(string[] args)
         {
             var createRouteTableCommand = CreateRouteTableCommand();
@@ -20,11 +22,20 @@ namespace GenevaServiceTag
         /// </summary>
         static async Task CreateOrUpdateRouteTableAsync(string group, string table, string firewall, string region, string subscription)
         {
+            if (table == null)
+                table = DefaultRouteTableName;
+
             if (subscription == null)
                 subscription = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
 
             if (subscription == null)
                 throw new ArgumentException("Must provide Azure subscription ID.");
+
+            if (region == null)
+                region = Environment.GetEnvironmentVariable("AZURE_REGION");
+            
+            if (region == null)
+                throw new ArgumentException("Must provide Azure region.");
 
             AzureOperations azure = new AzureOperations(region, subscription);
             
@@ -48,14 +59,14 @@ namespace GenevaServiceTag
                 new string[] {"-r", "--region"}, 
                 "Azure Region abbreviation.");
             regionOption.Argument = new Argument<string>();
-            regionOption.Required = true;
+            regionOption.Required = false;
             command.AddOption(regionOption);
 
             var tableOption = new Option(
                 new string[] {"-t", "--table"}, 
                 "Route Table resource name.");
             tableOption.Argument = new Argument<string>();
-            tableOption.Required = true;
+            tableOption.Required = false;
             command.AddOption(tableOption);
 
             var firewallOption = new Option(
