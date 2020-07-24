@@ -4,7 +4,7 @@ metadata:
   name: route-table-creator
 spec:
   containers:
-  - image: wthacr.azurecr.io/geneva:1.1
+  - image: wthacr.azurecr.io/genevaroutetable:v1.1
     command: ["geneva"]
     args: ["--firewall", "10.0.1.4", "--group", "jasondel-aro-rg"]
     name: geneva
@@ -33,4 +33,7 @@ spec:
         valueFrom:
           secretKeyRef:
             name: azure-credentials
-            key: azure_region                        
+            key: azure_region    
+  restartPolicy: Never
+  imagePullSecrets:
+    - name: wthacr-secret  

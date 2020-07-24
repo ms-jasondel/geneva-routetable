@@ -18,6 +18,7 @@ namespace GenevaServiceTag
         public string Subscription;
 
         private string _bearerToken = null;
+        private string _serviceTagJson = null;
 
         public AzureOperations(string region, string subscription) 
         {
@@ -30,19 +31,18 @@ namespace GenevaServiceTag
         /// </summary>
         public async Task<string[]> GetAzureMonitorIPs()
         {
-            // https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/serviceTags?api-version=2020-05-01        
-            string uri = $"{ManagementUri}/subscriptions/{Subscription}/providers/Microsoft.Network/locations/{Region}/serviceTags?api-version=2020-05-01";
-
-            string response = await GetAzureResponseAsync(uri);
-
-            var o = JObject.Parse(response);
-            var v = o.GetValue("values");
             string regionName = await GetRegionNameAsync();
             string jQuery = $"[?(@.name == 'AzureMonitor.{regionName}')].properties.addressPrefixes";
-            JToken adresses = v.SelectToken(jQuery);
-            IEnumerable<string> values = adresses?.Values().Values<string>(); 
-  
-            return values.ToArray();
+            string[] addresses = await GetServiceTagsAsync(jQuery);
+            return addresses;
+        }
+
+        public async Task<string[]> GetAzureStorageIPs()
+        {
+            string regionName = await GetRegionNameAsync();
+            string jQuery = $"[?(@.name == 'AzureMonitor.{regionName}')].properties.addressPrefixes";
+            string[] addresses = await GetServiceTagsAsync(jQuery);
+            return addresses;
         }
 
         /// <summary>
@@ -135,6 +135,27 @@ namespace GenevaServiceTag
                 name.GetHashCode());
 
             return formatted;
+        }
+
+        /// <summary>
+        /// Lazy load all service tags, and return results of json query.
+        /// </summary>
+        private async Task<string[]> GetServiceTagsAsync(string jQuery)
+        {
+            if (_serviceTagJson == null)
+            {
+                // https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/serviceTags?api-version=2020-05-01        
+                string uri = $"{ManagementUri}/subscriptions/{Subscription}/providers/Microsoft.Network/locations/{Region}/serviceTags?api-version=2020-05-01";
+                _serviceTagJson = await GetAzureResponseAsync(uri);
+            }
+
+            var o = JObject.Parse(_serviceTagJson);
+            var v = o.GetValue("values");
+
+            JToken adresses = v.SelectToken(jQuery);
+            IEnumerable<string> values = adresses?.Values().Values<string>(); 
+  
+            return values.ToArray();            
         }
 
         /// <summary>
