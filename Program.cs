@@ -18,7 +18,7 @@ namespace GenevaServiceTag
         /// Creates or update a route table to route all IPs represented by the Azure Monitor 
         /// Service Tag to the internet.
         /// </summary>
-        static async Task CreateOrUpdateRouteTableAsync(string group, string table, string region, string subscription)
+        static async Task CreateOrUpdateRouteTableAsync(string group, string table, string firewall, string region, string subscription)
         {
             if (subscription == null)
                 subscription = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
@@ -32,7 +32,7 @@ namespace GenevaServiceTag
             string[] addresses = await azure.GetAzureMonitorIPs();
 
             Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} addresses.");
-            await azure.CreateRouteTableAsync(group, table, addresses);
+            await azure.CreateRouteTableAsync(group, table, addresses, firewall);
 
             Console.WriteLine("Done");
         }
@@ -58,6 +58,13 @@ namespace GenevaServiceTag
             tableOption.Required = true;
             command.AddOption(tableOption);
 
+            var firewallOption = new Option(
+                new string[] {"-f", "--firewall"}, 
+                "IP Address of the Firewall.");
+            firewallOption.Argument = new Argument<string>();
+            firewallOption.Required = true;
+            command.AddOption(firewallOption);
+
             var groupOption = new Option(
                 new string[] {"-g", "--group"}, 
                 "Azure Resource Group to create Route Table.");
@@ -73,7 +80,7 @@ namespace GenevaServiceTag
             command.AddOption(subscriptionOption);
 
             command.Handler = 
-                CommandHandler.Create<string, string, string, string>(CreateOrUpdateRouteTableAsync);
+                CommandHandler.Create<string, string, string, string, string>(CreateOrUpdateRouteTableAsync);
 
             return command;
         }

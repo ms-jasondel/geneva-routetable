@@ -90,13 +90,27 @@ namespace GenevaServiceTag
         /// Creates or updates an existing Azure Route Table with a list of IP addresses that will be bound for the Internet as
         /// next hop.
         /// <summary>
-        public async Task CreateRouteTableAsync(string group, string routeTableName, string[] addresses)
+        public async Task CreateRouteTableAsync(string group, string routeTableName, string[] addresses, string virtualFirewallIp)
         {
             RouteTable table = new Azure.ResourceManager.Network.Models.RouteTable();
             table.Location = Region.ToLower();
             table.Routes = new List<Route>();
             table.Id = routeTableName;
+
+            // Add subnet.
+            // table.Subnets = new List<Subnet>();
+            // table.Subnets.Add(new Subnet() {  })
             
+            // Add default route.
+            Route defaultRoute = new Route();
+            defaultRoute.Id = "default";
+            defaultRoute.Name = "default";
+            defaultRoute.AddressPrefix = "0.0.0.0/0";
+            defaultRoute.NextHopIpAddress = virtualFirewallIp;
+            defaultRoute.NextHopType = RouteNextHopType.VirtualAppliance;
+            table.Routes.Add(defaultRoute);
+
+            // Add route for each of the IPs represented by the ServiceTag.
             foreach (string address in addresses)
             {
                 Route route = new Route();
