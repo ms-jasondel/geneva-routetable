@@ -2,3 +2,4 @@ bin/**
 obj/**
 dot.env
 .vscode/**
+output.json
