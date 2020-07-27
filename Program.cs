@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -39,8 +40,13 @@ namespace GenevaServiceTag
 
             AzureOperations azure = new AzureOperations(region, subscription);
             
+            string regionName = await azure.GetRegionNameAsync();
+
             Console.WriteLine($"Getting Service Tags for geneva in {region} for subscription {subscription}.");
-            string[] addresses = await azure.GetAzureMonitorIPs();
+            
+            IEnumerable<string> addresses = await azure.GetAzureMonitorIPs(regionName);
+            addresses = addresses.Concat(await azure.GetAzureStorageIPs(regionName));
+            addresses = addresses.Concat(await azure.GetEventHubIPs(regionName));
 
             Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} addresses.");
             await azure.CreateRouteTableAsync(group, table, addresses, firewall);

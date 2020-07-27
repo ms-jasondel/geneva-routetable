@@ -29,19 +29,21 @@ namespace GenevaServiceTag
         /// <summary>
         /// Queries Azure REST API to get a list of IPs represented by the AzureMonitor ServiceTag for the specified region.
         /// </summary>
-        public async Task<string[]> GetAzureMonitorIPs()
+        public async Task<IEnumerable<string>> GetAzureMonitorIPs(string regionName)
         {
-            string regionName = await GetRegionNameAsync();
-            string jQuery = $"[?(@.name == 'AzureMonitor.{regionName}')].properties.addressPrefixes";
-            string[] addresses = await GetServiceTagsAsync(jQuery);
+            IEnumerable<string> addresses = await GetServiceTagsAsync("AzureMonitor", regionName);
             return addresses;
         }
 
-        public async Task<string[]> GetAzureStorageIPs()
+        public async Task<IEnumerable<string>> GetAzureStorageIPs(string regionName)
         {
-            string regionName = await GetRegionNameAsync();
-            string jQuery = $"[?(@.name == 'AzureMonitor.{regionName}')].properties.addressPrefixes";
-            string[] addresses = await GetServiceTagsAsync(jQuery);
+            IEnumerable<string> addresses = await GetServiceTagsAsync("Storage", regionName);
+            return addresses;
+        }
+
+        public async Task<IEnumerable<string>> GetEventHubIPs(string regionName)
+        {
+            IEnumerable<string> addresses = await GetServiceTagsAsync("EventHub", regionName);
             return addresses;
         }
 
@@ -90,7 +92,7 @@ namespace GenevaServiceTag
         /// Creates or updates an existing Azure Route Table with a list of IP addresses that will be bound for the Internet as
         /// next hop.
         /// <summary>
-        public async Task CreateRouteTableAsync(string group, string routeTableName, string[] addresses, string virtualFirewallIp)
+        public async Task CreateRouteTableAsync(string group, string routeTableName, IEnumerable<string> addresses, string virtualFirewallIp)
         {
             RouteTable table = new Azure.ResourceManager.Network.Models.RouteTable();
             table.Location = Region.ToLower();
@@ -140,8 +142,10 @@ namespace GenevaServiceTag
         /// <summary>
         /// Lazy load all service tags, and return results of json query.
         /// </summary>
-        private async Task<string[]> GetServiceTagsAsync(string jQuery)
+        private async Task<IEnumerable<string>> GetServiceTagsAsync(string service, string regionName)
         {
+            string jQuery = $"[?(@.name == '{service}.{regionName}')].properties.addressPrefixes";
+
             if (_serviceTagJson == null)
             {
                 // https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/serviceTags?api-version=2020-05-01        
@@ -155,7 +159,7 @@ namespace GenevaServiceTag
             JToken adresses = v.SelectToken(jQuery);
             IEnumerable<string> values = adresses?.Values().Values<string>(); 
   
-            return values.ToArray();            
+            return values;       
         }
 
         /// <summary>
