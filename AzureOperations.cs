@@ -47,6 +47,13 @@ namespace GenevaServiceTag
             return addresses;
         }
 
+        public async Task<IEnumerable<string>> GetResourceManagerIPs(string regionName)
+        {
+            IEnumerable<string> addresses = await GetServiceTagsAsync("AzureResourceManager", null);
+            addresses = addresses.Concat(await GetServiceTagsAsync("AzureResourceManager", regionName));
+            return addresses;
+        }
+
         /// <summary>
         /// Validates region is equal to the region name as returned from a list of all available regions.
         /// Formats the Display Name for the region, removing all spaces to match that of AzureMonitor.<RegionName> syntax
@@ -144,7 +151,11 @@ namespace GenevaServiceTag
         /// </summary>
         private async Task<IEnumerable<string>> GetServiceTagsAsync(string service, string regionName)
         {
-            string jQuery = $"[?(@.name == '{service}.{regionName}')].properties.addressPrefixes";
+            string jQuery = null;
+            if (regionName == null)
+                jQuery = $"[?(@.name == '{service}')].properties.addressPrefixes";
+            else
+                jQuery = $"[?(@.name == '{service}.{regionName}')].properties.addressPrefixes";
 
             if (_serviceTagJson == null)
             {
