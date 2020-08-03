@@ -100,50 +100,20 @@ namespace GenevaServiceTag
         /// next hop.
         /// <summary>
         public async Task CreateRouteTableAsync(string group, string routeTableName, IEnumerable<string> addresses, string virtualFirewallIp)
-        {
-            RouteTable table = new Azure.ResourceManager.Network.Models.RouteTable();
-            table.Location = Region.ToLower();
-            table.Routes = new List<Route>();
-            table.Id = routeTableName;
+        {            
+            RouteTableFactory factory = new RouteTableFactory(
+                Region, routeTableName, virtualFirewallIp, addresses);
+            RouteTable table = factory.Create();
 
-            // Add subnet.
-            // table.Subnets = new List<Subnet>();
-            // table.Subnets.Add(new Subnet() {  })
-            
-            // Add default route.
-            Route defaultRoute = new Route();
-            defaultRoute.Id = "default";
-            defaultRoute.Name = "default";
-            defaultRoute.AddressPrefix = "0.0.0.0/0";
-            defaultRoute.NextHopIpAddress = virtualFirewallIp;
-            defaultRoute.NextHopType = RouteNextHopType.VirtualAppliance;
-            table.Routes.Add(defaultRoute);
-
-            // Add route for each of the IPs represented by the ServiceTag.
-            foreach (string address in addresses)
+            if ( (table.Routes.Count() - 1) <= 0 )
             {
-                Route route = new Route();
-                route.Id = FormatName(routeTableName, address);
-                route.Name = FormatName(routeTableName, address);
-                route.AddressPrefix = address;
-                route.NextHopType = RouteNextHopType.Internet;
-                table.Routes.Add(route);
-            }          
-            
+                System.Console.WriteLine("No routes to add.");
+                return;
+            }
+
+            Console.WriteLine("Adding {0} routes.", table.Routes.Count());
             NetworkManagementClient client = new NetworkManagementClient(Subscription, new DefaultAzureCredential());
-            await client.RouteTables.StartCreateOrUpdateAsync(group, routeTableName, table, new System.Threading.CancellationToken());
-        }
-
-        /// <summary>
-        /// Helper method to come up with route names.
-        /// </summary>
-        private string FormatName(string routeTableName, string name)
-        {
-            string formatted = string.Format("{0}-{1:X16}", 
-                routeTableName,
-                name.GetHashCode());
-
-            return formatted;
+            await client.RouteTables.StartCreateOrUpdateAsync(group, routeTableName, table);
         }
 
         /// <summary>
@@ -205,6 +175,6 @@ namespace GenevaServiceTag
             var token = accessToken.Token;
             
             return token;
-        }                
-    }
+        }   
+    }         
 }

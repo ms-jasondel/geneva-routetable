@@ -49,7 +49,7 @@ namespace GenevaServiceTag
             addresses = addresses.Concat(await azure.GetEventHubIPs(regionName));
             addresses = addresses.Concat(await azure.GetResourceManagerIPs(null));
 
-            Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} addresses.");
+            Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} address prefixes.");
             await azure.CreateRouteTableAsync(group, table, addresses, firewall);
 
             Console.WriteLine("Done");
