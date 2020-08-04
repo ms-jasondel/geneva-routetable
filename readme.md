@@ -20,7 +20,7 @@ Sample use:
 
 ```bash
 
-docker run -it jjdelorme/genevaroutetable:v1.2
+docker run -it jjdelorme/genevaroutetable:v1.2.1
 
 ./geneva -r eastus -f 10.0.1.4 -g my-resource-group
 
