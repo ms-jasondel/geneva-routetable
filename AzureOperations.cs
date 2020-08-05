@@ -149,6 +149,10 @@ namespace GenevaServiceTag
 
                 if (_serviceTagJson == null)
                     throw new ApplicationException($"Unable to get service tags from: {uri}");
+
+                #if DEBUG
+                    System.Console.WriteLine($"Service tags from {uri}:\n\t{_serviceTagJson}\n");
+                #endif
             }
 
             string jQuery = null;
@@ -181,6 +185,9 @@ namespace GenevaServiceTag
                 client.DefaultRequestHeaders.Add("Authorization", new string[] {"Bearer " + _bearerToken});
                 var response = await client.GetAsync(uri);
                 value = await response.Content.ReadAsStringAsync();
+                #if DEBUG
+                    System.Console.WriteLine($"Using bearer: {_bearerToken}\n\t{uri} returned \n\t{response.StatusCode}:\n\t{value}");
+                #endif
             }
 
             return value;            

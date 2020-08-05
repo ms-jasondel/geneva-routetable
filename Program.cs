@@ -45,6 +45,14 @@ namespace GenevaServiceTag
             if (region == null)
                 throw new ArgumentException("Must provide Azure region.");
 
+            #if DEBUG
+                System.Console.WriteLine($"AZURE_REGION: {region}");
+                System.Console.WriteLine($"AZURE_SUBSCRIPTION_ID: {subscription}");
+                System.Console.WriteLine($"AZURE_TENANT_ID: {Environment.GetEnvironmentVariable("AZURE_TENANT_ID")}");
+                System.Console.WriteLine($"AZURE_CLIENT_ID: {Environment.GetEnvironmentVariable("AZURE_CLIENT_ID")}");
+                System.Console.WriteLine($"AZURE_CLIENT_SECRET: {Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET")}");
+            #endif
+
             AzureOperations azure = new AzureOperations(region, subscription);
 
             string regionName = await azure.GetRegionNameAsync();
