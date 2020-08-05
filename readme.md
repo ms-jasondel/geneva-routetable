@@ -105,7 +105,7 @@ Verify the job was deployed:
 oc get cronjobs
 
 NAME                  SCHEDULE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
-route-table-creator   @daily    False     0        53m             74m
+route-table-creator   @daily     False     0        53m             74m
 ```
 
 To view progress and logs after the initial run has been performed (after midnight), get the pods:
