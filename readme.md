@@ -142,4 +142,4 @@ Done
 
 ### OpenShift Egress Firewall
 
-For many customers exposing *.blob, *.table and other large address spaces creates a potential data exfiltration concern.  You may want to consider using the [OpenShift Egress Firewall](https://docs.openshift.com/container-platform/4.4/networking/openshift_sdn/configuring-egress-firewall.html) to protect applications deployed in the cluster from reaching these nations and use Azure Private Link for specific application needs.  A sample egress firewall manifest is included in ```egress.yaml``` in this repo. 
+For many customers exposing *.blob, *.table and other large address spaces creates a potential data exfiltration concern.  You may want to consider using the [OpenShift Egress Firewall](https://docs.openshift.com/container-platform/4.4/networking/openshift_sdn/configuring-egress-firewall.html) to protect applications deployed in the cluster from reaching these destinations and use Azure Private Link for specific application needs.  A sample egress firewall manifest is included in ```egress.yaml``` in this repo. 
