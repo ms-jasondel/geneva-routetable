@@ -99,11 +99,18 @@ namespace GenevaServiceTag
         /// Creates or updates an existing Azure Route Table with a list of IP addresses that will be bound for the Internet as
         /// next hop.
         /// <summary>
-        public async Task CreateRouteTableAsync(string group, string routeTableName, IEnumerable<string> addresses, string virtualFirewallIp)
+        public async Task CreateRouteTableAsync(
+                string group, 
+                string routeTableName, 
+                IEnumerable<string> addresses, 
+                string virtualFirewallIp,
+                string vnet,
+                string[] subnets)
         {            
             RouteTableFactory factory = new RouteTableFactory(
                 Region, routeTableName, virtualFirewallIp, addresses);
             RouteTable table = factory.Create();
+            table.Id = CreateRouteTableResourceId(group, routeTableName);
 
             if ( (table.Routes.Count() - 1) <= 0 )
             {
@@ -111,10 +118,23 @@ namespace GenevaServiceTag
                 return;
             }
 
+            System.Console.WriteLine("Getting subnets to associate with route table.");
+            AssociateSubnets(table, group, vnet, subnets);
+
             Console.WriteLine("Adding {0} routes.", table.Routes.Count());
             NetworkManagementClient client = new NetworkManagementClient(Subscription, new DefaultAzureCredential());
             await client.RouteTables.StartCreateOrUpdateAsync(group, routeTableName, table);
         }
+
+        /// <summary>
+        /// Formats the Azure resource id string for the route table.
+        /// </summary>
+        private string CreateRouteTableResourceId(string group, string routeTableName)
+        {
+            const string format = "/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Network/routeTables/{2}";
+            return string.Format(format, Subscription, group, routeTableName);
+        }
+
 
         /// <summary>
         /// Lazy load all service tags, and return results of json query.
@@ -176,5 +196,24 @@ namespace GenevaServiceTag
             
             return token;
         }   
+
+        private void AssociateSubnets(RouteTable table, string group, string vnetName, string[] subnetNames)
+        {
+            NetworkManagementClient client = new NetworkManagementClient(Subscription, 
+                new DefaultAzureCredential());
+            
+            foreach (string name in subnetNames)
+            {
+                Subnet subnet = client.Subnets.Get(group, vnetName, name)?.Value;
+                if (subnet == null)
+                {
+                    throw new ArgumentException(
+                        string.Format("Subnet {0} was not found in {1}.", name, vnetName));
+                }
+
+                subnet.RouteTable = table;
+                client.Subnets.StartCreateOrUpdate(group, vnetName, name, subnet);
+            }
+        }
     }         
 }

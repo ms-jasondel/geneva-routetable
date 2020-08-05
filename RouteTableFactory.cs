@@ -41,7 +41,6 @@ namespace GenevaServiceTag
             RouteTable table = new Azure.ResourceManager.Network.Models.RouteTable();
             table.Location = region.ToLower();
             table.Routes = new List<Route>();
-            table.Id = routeTableName;
             return table;
         }
 

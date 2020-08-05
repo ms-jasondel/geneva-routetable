@@ -21,7 +21,14 @@ namespace GenevaServiceTag
         /// Creates or update a route table to route all IPs represented by the Azure Monitor 
         /// Service Tag to the internet.
         /// </summary>
-        static async Task CreateOrUpdateRouteTableAsync(string group, string table, string firewall, string region, string subscription)
+        static async Task CreateOrUpdateRouteTableAsync(
+                string group, 
+                string table, 
+                string firewall, 
+                string region, 
+                string subscription, 
+                string vnet,
+                string[] subnets)
         {
             if (table == null)
                 table = DefaultRouteTableName;
@@ -39,7 +46,7 @@ namespace GenevaServiceTag
                 throw new ArgumentException("Must provide Azure region.");
 
             AzureOperations azure = new AzureOperations(region, subscription);
-            
+
             string regionName = await azure.GetRegionNameAsync();
 
             Console.WriteLine($"Getting Service Tags for geneva in {region} for subscription {subscription}.");
@@ -50,7 +57,7 @@ namespace GenevaServiceTag
             addresses = addresses.Concat(await azure.GetResourceManagerIPs(null));
 
             Console.WriteLine($"Creating route table {table} in {group} with {addresses.Count()} address prefixes.");
-            await azure.CreateRouteTableAsync(group, table, addresses, firewall);
+            await azure.CreateRouteTableAsync(group, table, addresses, firewall, vnet, subnets);
 
             Console.WriteLine("Done");
         }
@@ -97,8 +104,22 @@ namespace GenevaServiceTag
             subscriptionOption.Required = false;
             command.AddOption(subscriptionOption);
 
+            var vnetOption = new Option(
+                new string[] {"-v", "--vnet"}, 
+                "Azure vnet name");
+            vnetOption.Argument = new Argument<string>();
+            vnetOption.Required = true;
+            command.AddOption(vnetOption);         
+
+            var subnetsOption = new Option(
+                new string[] {"-n", "--subnets"}, 
+                "1 or more Azure subnet names, separated by spaces.");
+            subnetsOption.Argument = new Argument<string[]>();
+            subnetsOption.Required = true;
+            command.AddOption(subnetsOption);            
+
             command.Handler = 
-                CommandHandler.Create<string, string, string, string, string>(CreateOrUpdateRouteTableAsync);
+                CommandHandler.Create<string, string, string, string, string, string, string[]>(CreateOrUpdateRouteTableAsync);
 
             return command;
         }
