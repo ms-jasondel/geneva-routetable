@@ -1,39 +1,40 @@
-apiVersion: v1
-kind: Pod
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: route-table-creator
 spec:
-  containers:
-  - image: wthacr.azurecr.io/genevaroutetable:v1.1
-    command: ["geneva"]
-    args: ["--firewall", "10.0.1.4", "--group", "jasondel-aro-rg"]
-    name: geneva
-    env:
-      - name: AZURE_CLIENT_ID
-        valueFrom:
-          secretKeyRef:
-            name: azure-credentials
-            key: azure_client_id
-      - name: AZURE_CLIENT_SECRET
-        valueFrom:
-          secretKeyRef:
-            name: azure-credentials
-            key: azure_client_secret
-      - name: AZURE_TENANT_ID
-        valueFrom:
-          secretKeyRef:
-            name: azure-credentials
-            key: azure_tenant_id
-      - name: AZURE_SUBSCRIPTION_ID
-        valueFrom:
-          secretKeyRef:
-            name: azure-credentials
-            key: azure_subscription_id
-      - name: AZURE_REGION
-        valueFrom:
-          secretKeyRef:
-            name: azure-credentials
-            key: azure_region    
-  restartPolicy: Never
-  imagePullSecrets:
-    - name: wthacr-secret  
+  template:
+    spec:
+      containers:
+      - image: jjdelorme/genevaroutetable:v1.3
+        #command: ["./geneva", "--firewall", "10.0.1.4", "--group", "jasondel-aro-rg", "--vnet", "aro-vnet", "--subnets", "master2-subnet", "worker2-subnet"]
+        #command: ["sleep", "3600"]
+        name: geneva
+        env:
+          - name: AZURE_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: azure-credentials
+                key: azure_client_id
+          - name: AZURE_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: azure-credentials
+                key: azure_client_secret
+          - name: AZURE_TENANT_ID
+            valueFrom:
+              secretKeyRef:
+                name: azure-credentials
+                key: azure_tenant_id
+          - name: AZURE_SUBSCRIPTION_ID
+            valueFrom:
+              secretKeyRef:
+                name: azure-credentials
+                key: azure_subscription_id
+          - name: AZURE_REGION
+            valueFrom:
+              secretKeyRef:
+                name: azure-credentials
+                key: azure_region    
+      restartPolicy: Never
+  backoffLimit: 2
