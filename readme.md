@@ -1,8 +1,8 @@
 # Route Table Creator
 
-:warning: Please note this is a sample application provided as-is.
-
 This **sample** application will pull a list of IP addresses from the Azure Monitor, Azure Storage, Azure Resource Manager, Azure Event Hubs Service Tags and update or create an Azure Route Table which directs the next hop for these addresses to the Internet, all other traffic (0.0.0.0/0) is directed using a default route to the IP specified by ```--firewall```. It will assign this route table to each of the ```--subnets``` passed.
+
+:warning: Please note this is a sample application provided as-is.
 
 ## Geneva
 
@@ -142,4 +142,4 @@ Done
 
 ### OpenShift Egress Firewall
 
-For many customers exposing *.blob, *.table and other large address spaces creates a potential data exfiltration concern.  You may want to consider using the [OpenShift Egress Firewall](https://docs.openshift.com/container-platform/4.4/networking/openshift_sdn/configuring-egress-firewall.html) to protect applications deployed in the cluster from reaching these destiations and use Azure Private Link for specific application needs.  A sample egress firewall manifest is included in ```egress.yaml``` in this repo. 
+For many customers exposing *.blob, *.table and other large address spaces creates a potential data exfiltration concern.  You may want to consider using the [OpenShift Egress Firewall](https://docs.openshift.com/container-platform/4.4/networking/openshift_sdn/configuring-egress-firewall.html) to protect applications deployed in the cluster from reaching these nations and use Azure Private Link for specific application needs.  A sample egress firewall manifest is included in ```egress.yaml``` in this repo. 
