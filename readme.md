@@ -31,7 +31,7 @@ group that contains the vnet (```--vnet```).  This is the resource group (```--g
 
 ## Usage
 
-If ```--region``` or ```--subscription``` options are omitted they will attempt to be be read from ```AZURE_REGION``` and ```AZURE_SUBSCRIPTION_ID``` environment variables.
+If ```--region``` or ```--subscription``` options are omitted they will attempt to be read from ```AZURE_REGION``` and ```AZURE_SUBSCRIPTION_ID``` environment variables.
 
 ```bash
 Usage:
@@ -55,7 +55,7 @@ Sample of running locally with docker.
 
 ```bash
 
-docker run -it jjdelorme/genevaroutetable:latest
+docker run -it jjdelorme/genevaroutetable:v1.3.2
 
 ./geneva -r eastus -f 10.0.1.4 -g my-aro-rg -v aro-vnet -n worker-subnet master-subnet
 
