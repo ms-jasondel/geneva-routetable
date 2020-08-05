@@ -1,8 +1,14 @@
-# About this application
+# Route Table Creator
 
 :warning: Please note this is a sample application provided as-is.
 
 This **sample** application will pull a list of IP addresses from the Azure Monitor, Azure Storage, Azure Resource Manager, Azure Event Hubs Service Tags and update or create an Azure Route Table which directs the next hop for these addresses to the Internet, all other traffic (0.0.0.0/0) is directed using a default route to the IP specified by ```--firewall```. It will assign this route table to each of the ```--subnets``` passed.
+
+## Geneva
+
+Geneva is a backend system used to manage and monitor clusters.  The purpose of this **sample** application is to create a route table that directs all Geneva bound traffic to the Azure backbone and forces all other traffic through a virtual firewall appliance such as an Azure Firewall.
+
+![Egress Firewall](egress-firewall.png)
 
 ## Azure Authentication
 
@@ -21,13 +27,11 @@ export AZURE_SUBSCRIPTION_ID='xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
 ### Permissions
 
 Ensure that the service principal (```AZURE_CLIENT_ID```) has contributor rights on the resource
-group that contains the vnet.  This is the resource group (```--group```) where the route table will be created.
+group that contains the vnet (```--vnet```).  This is the resource group (```--group```) where the route table will be created.
 
 ## Usage
 
-Sample use:
-
-If omitted region and subscription options will attempt to be be read from ```AZURE_REGION``` and ```AZURE_SUBSCRIPTION_ID``` environment variables.
+If ```--region``` or ```--subscription``` options are omitted they will attempt to be be read from ```AZURE_REGION``` and ```AZURE_SUBSCRIPTION_ID``` environment variables.
 
 ```bash
 Usage:
@@ -47,19 +51,22 @@ Options:
   -?, -h, --help                   Show help and usage information
 ```
 
+Sample of running locally with docker.
 
 ```bash
 
 docker run -it jjdelorme/genevaroutetable:latest
 
-./geneva -r eastus -f 10.0.1.4 -g my-resource-group
+./geneva -r eastus -f 10.0.1.4 -g my-aro-rg -v aro-vnet -n worker-subnet master-subnet
 
 Getting Azure Locations.
 Attempting to authenticate.
-Getting Service Tags for geneva in eastus for subscription xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
-Creating route table Firewall-route in my-resource-group with 373 address prefixes.
+Getting Service Tags for geneva in eastus for subscription xxxxxxxxxxxxxxxxxxxxxxxxxx.
+Creating route table Firewall-route in my-aro-rg with 373 address prefixes.
+Getting subnets to associate with route table.
 Adding 265 routes.
 Done
+
 ```
 
 ## Deployment
@@ -89,7 +96,7 @@ oc get secret azure-credentials --namespace=kube-system --export -o yaml |\
    oc apply -f -
 ```
 
-Please note that by default the ARO service principal copied here does not have enough permissions to execute this application.  You will either need to change the client and password stored in the secrets, or grant appropriate [permissions](#permissions) to this client.
+Please note that the ARO service principal copied here does not have enough permissions to execute this application.  You will need to change the client and password stored in the secrets to a service principal with appropriate [permissions](#permissions).
 
 ### Cron Job
 
@@ -132,3 +139,7 @@ Adding 265 routes.
 Done
 
 ```
+
+### OpenShift Egress Firewall
+
+For many customers exposing *.blob, *.table and other large address spaces creates a potential data exfiltration concern.  You may want to consider using the [OpenShift Egress Firewall](https://docs.openshift.com/container-platform/4.4/networking/openshift_sdn/configuring-egress-firewall.html) to protect applications deployed in the cluster from reaching these destiations and use Azure Private Link for specific application needs.  A sample egress firewall manifest is included in ```egress.yaml``` in this repo. 
