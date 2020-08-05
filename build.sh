@@ -2,7 +2,7 @@ if [ -z "$VERSION" ]
 then 
     VERSION=$(git describe --abbrev=1 --tags)
 fi
-container=genevaroutetable:v$VERSION
+container=jjdelorme/genevaroutetable:v$VERSION
 
 #
 # Build container

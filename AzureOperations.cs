@@ -131,8 +131,8 @@ namespace GenevaServiceTag
         /// </summary>
         private string CreateRouteTableResourceId(string group, string routeTableName)
         {
-            const string format = "/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Network/routeTables/{2}";
-            return string.Format(format, Subscription, group, routeTableName);
+            string resourceId = $"/subscriptions/{Subscription}/resourceGroups/{group}/providers/Microsoft.Network/routeTables/{routeTableName}";
+            return resourceId;
         }
 
 
@@ -141,18 +141,21 @@ namespace GenevaServiceTag
         /// </summary>
         private async Task<IEnumerable<string>> GetServiceTagsAsync(string service, string regionName)
         {
-            string jQuery = null;
-            if (regionName == null)
-                jQuery = $"[?(@.name == '{service}')].properties.addressPrefixes";
-            else
-                jQuery = $"[?(@.name == '{service}.{regionName}')].properties.addressPrefixes";
-
             if (_serviceTagJson == null)
             {
                 // https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/serviceTags?api-version=2020-05-01        
                 string uri = $"{ManagementUri}/subscriptions/{Subscription}/providers/Microsoft.Network/locations/{Region}/serviceTags?api-version=2020-05-01";
                 _serviceTagJson = await GetAzureResponseAsync(uri);
+
+                if (_serviceTagJson == null)
+                    throw new ApplicationException($"Unable to get service tags from: {uri}");
             }
+
+            string jQuery = null;
+            if (regionName == null)
+                jQuery = $"[?(@.name == '{service}')].properties.addressPrefixes";
+            else
+                jQuery = $"[?(@.name == '{service}.{regionName}')].properties.addressPrefixes";
 
             var o = JObject.Parse(_serviceTagJson);
             var v = o.GetValue("values");
