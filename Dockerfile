@@ -14,3 +14,5 @@ FROM mcr.microsoft.com/dotnet/core/runtime-deps:3.1 AS runtime
 WORKDIR /geneva
 
 COPY --from=build /geneva/publish /geneva
+
+#RUN apt-get update && apt-get install -y curl

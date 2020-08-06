@@ -50,7 +50,7 @@ namespace GenevaServiceTag
                 System.Console.WriteLine($"AZURE_SUBSCRIPTION_ID: {subscription}");
                 System.Console.WriteLine($"AZURE_TENANT_ID: {Environment.GetEnvironmentVariable("AZURE_TENANT_ID")}");
                 System.Console.WriteLine($"AZURE_CLIENT_ID: {Environment.GetEnvironmentVariable("AZURE_CLIENT_ID")}");
-                System.Console.WriteLine($"AZURE_CLIENT_SECRET: {Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET")}");
+                //System.Console.WriteLine($"AZURE_CLIENT_SECRET: {Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET")}");
             #endif
 
             AzureOperations azure = new AzureOperations(region, subscription);
@@ -123,7 +123,7 @@ namespace GenevaServiceTag
                 new string[] {"-n", "--subnets"}, 
                 "1 or more Azure subnet names, separated by spaces.");
             subnetsOption.Argument = new Argument<string[]>();
-            subnetsOption.Required = true;
+            subnetsOption.Required = false;
             command.AddOption(subnetsOption);            
 
             command.Handler = 

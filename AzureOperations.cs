@@ -118,8 +118,11 @@ namespace GenevaServiceTag
                 return;
             }
 
-            System.Console.WriteLine("Getting subnets to associate with route table.");
-            AssociateSubnets(table, group, vnet, subnets);
+            if (subnets != null)
+            {
+                System.Console.WriteLine("Getting subnets to associate with route table.");
+                AssociateSubnets(table, group, vnet, subnets);
+            }
 
             Console.WriteLine("Adding {0} routes.", table.Routes.Count());
             NetworkManagementClient client = new NetworkManagementClient(Subscription, new DefaultAzureCredential());
@@ -200,7 +203,7 @@ namespace GenevaServiceTag
         {
             Console.WriteLine($"Attempting to authenticate.");
             var cred = new DefaultAzureCredential();
-            string[] scopes = new string[]{ ManagementUri + "/.default"};
+            string[] scopes = new string[]{ ManagementUri + "/.default" };
             var accessToken = await cred.GetTokenAsync(new TokenRequestContext(scopes));
             var token = accessToken.Token;
             
