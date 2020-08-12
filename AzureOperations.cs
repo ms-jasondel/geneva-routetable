@@ -16,14 +16,15 @@ namespace GenevaServiceTag
         public const string ManagementUri = "https://management.azure.com";
         public string Region;
         public string Subscription;
-
-        private string _bearerToken = null;
-        private string _serviceTagJson = null;
+        private TokenCredential _credential;
+        private string _bearerToken;
+        private IEnumerable<ServiceTagInformation> _serviceTags;
 
         public AzureOperations(string region, string subscription) 
         {
             Region = region;
             Subscription = subscription;
+            _credential = new DefaultAzureCredential();
         }
 
         /// <summary>
@@ -118,15 +119,15 @@ namespace GenevaServiceTag
                 return;
             }
 
+            Console.WriteLine("Adding {0} routes.", table.Routes.Count());
+            NetworkManagementClient client = new NetworkManagementClient(Subscription, _credential);
+            await client.RouteTables.StartCreateOrUpdateAsync(group, routeTableName, table);
+
             if (subnets != null)
             {
                 System.Console.WriteLine("Getting subnets to associate with route table.");
                 AssociateSubnets(table, group, vnet, subnets);
             }
-
-            Console.WriteLine("Adding {0} routes.", table.Routes.Count());
-            NetworkManagementClient client = new NetworkManagementClient(Subscription, new DefaultAzureCredential());
-            await client.RouteTables.StartCreateOrUpdateAsync(group, routeTableName, table);
         }
 
         /// <summary>
@@ -138,39 +139,47 @@ namespace GenevaServiceTag
             return resourceId;
         }
 
-
         /// <summary>
         /// Lazy load all service tags, and return results of json query.
         /// </summary>
         private async Task<IEnumerable<string>> GetServiceTagsAsync(string service, string regionName)
         {
-            if (_serviceTagJson == null)
+            string location = regionName?.ToLower() ?? Region.ToLower();
+
+            if (_serviceTags == null)
             {
-                // https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/serviceTags?api-version=2020-05-01        
-                string uri = $"{ManagementUri}/subscriptions/{Subscription}/providers/Microsoft.Network/locations/{Region}/serviceTags?api-version=2020-05-01";
-                _serviceTagJson = await GetAzureResponseAsync(uri);
+                NetworkManagementClient client = new NetworkManagementClient(Subscription, _credential);
+                var response = await client.ServiceTags.ListAsync(location);
 
-                if (_serviceTagJson == null)
-                    throw new ApplicationException($"Unable to get service tags from: {uri}");
-
+                _serviceTags = response?.Value.Values;
+                
                 #if DEBUG
-                    System.Console.WriteLine($"Service tags from {uri}:\n\t{_serviceTagJson}\n");
+                    Azure.Response http = response?.GetRawResponse();
+                    if (http != null)
+                    {
+                        using (var reader = new System.IO.StreamReader(http.ContentStream))
+                        {
+                            System.Console.WriteLine(http.ReasonPhrase + "\n");
+                            System.Console.WriteLine(reader.ReadToEnd());
+                        }
+                    }
+                    else 
+                    {
+                        System.Console.WriteLine($"Response was empty.");
+                    }
                 #endif
+
+                if (_serviceTags == null || _serviceTags.Count() <= 0)
+                    throw new ApplicationException($"Unable to retrieve service tags for {service} in {regionName}.");
             }
 
-            string jQuery = null;
-            if (regionName == null)
-                jQuery = $"[?(@.name == '{service}')].properties.addressPrefixes";
-            else
-                jQuery = $"[?(@.name == '{service}.{regionName}')].properties.addressPrefixes";
+            var tags =_serviceTags.Where(t => 
+                t.Properties.Region == location && 
+                t.Properties.SystemService == service);
 
-            var o = JObject.Parse(_serviceTagJson);
-            var v = o.GetValue("values");
-
-            JToken adresses = v.SelectToken(jQuery);
-            IEnumerable<string> values = adresses?.Values().Values<string>(); 
-  
-            return values;       
+            IEnumerable<string> addresses = tags.SelectMany(t => t.Properties.AddressPrefixes);
+            
+            return addresses;
         }
 
         /// <summary>
@@ -202,7 +211,8 @@ namespace GenevaServiceTag
         private async Task<string> GetIdentityTokenAsync()
         {
             Console.WriteLine($"Attempting to authenticate.");
-            var cred = new DefaultAzureCredential();
+
+            DefaultAzureCredential cred = (DefaultAzureCredential)_credential;
             string[] scopes = new string[]{ ManagementUri + "/.default" };
             var accessToken = await cred.GetTokenAsync(new TokenRequestContext(scopes));
             var token = accessToken.Token;

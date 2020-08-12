@@ -13,6 +13,8 @@ namespace GenevaServiceTag
         
         static void Main(string[] args)
         {
+            System.Console.WriteLine("Debug");
+            System.Console.ReadLine();
             var createRouteTableCommand = CreateRouteTableCommand();
             createRouteTableCommand.InvokeAsync(args).Wait();
         }
